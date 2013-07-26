@@ -77,7 +77,7 @@ end
 #create a mysql database
 mysql_database node['vagrant_magento']['config']['db_name'] do
   connection ({:host => "localhost", :username => 'root', :password => node['mysql']['server_root_password']})
-  action :create
+  action :nothing
 end
 
 #sample-data
@@ -87,9 +87,11 @@ ruby_block "sample-data" do
   end
   action :create
 
+  not_if { File.directory?("/var/lib/mysql/#{ node['vagrant_magento']['config']['db_name'] }" }
   not_if { node['vagrant_magento']['sample_data']['install'] == false }
   only_if { `which php` != false }
 
+  notifies :create, "mysql_database[#{ node['vagrant_magento']['config']['db_name']}]", :immediately
   notifies :create, "remote_file[#{Chef::Config[:file_cache_path]}/magento-sample-data.tar.gz]", :immediately
   notifies :run, "execute[sample-data-extract]", :immediately
   notifies :create, "ruby_block[sample-data-prefix]", :immediately
